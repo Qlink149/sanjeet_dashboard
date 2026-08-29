@@ -43,9 +43,35 @@ const ChatHistory = () => {
 
   const chatContainerRef = useRef(null);
   const isUserScrollingRef = useRef(false);
+  const lastThreadFingerprintRef = useRef("");
   const lastMessageCountRef = useRef(0);
   const listAbortRef = useRef(null);
   const threadAbortRef = useRef(null);
+
+  const visibleMessages = (chatHistory || []).filter(
+    (msg) => typeof msg?.content === "string" && msg.content.trim()
+  );
+
+  const statusLabel = (status) => {
+    const map = {
+      submitted: "Submitted",
+      sent: "Sent",
+      enqueued: "Sending",
+      delivered: "Delivered",
+      read: "Read",
+      failed: "Failed",
+      undelivered: "Failed",
+    };
+    return map[status] || status;
+  };
+
+  const threadFingerprint = (history) =>
+    (history || [])
+      .map(
+        (m) =>
+          `${m.role}|${m.content || ""}|${m.status || ""}|${m.error || ""}`
+      )
+      .join("\n");
 
   const totalPages = Math.max(1, Math.ceil(totalDocs / PAGE_SIZE));
 
@@ -159,10 +185,13 @@ const ChatHistory = () => {
       try {
         const history = await fetchChatHistory(selectedUser._id, silent);
         if (history == null) return;
-        if (history.length !== lastMessageCountRef.current) {
+        const fingerprint = threadFingerprint(history);
+        if (fingerprint !== lastThreadFingerprintRef.current) {
+          const grew = history.length > lastMessageCountRef.current;
           setChatHistory(history);
+          lastThreadFingerprintRef.current = fingerprint;
           lastMessageCountRef.current = history.length;
-          if (!isUserScrollingRef.current) {
+          if (grew && !isUserScrollingRef.current) {
             requestAnimationFrame(() => {
               const el = chatContainerRef.current;
               if (el) el.scrollTop = el.scrollHeight;
@@ -177,6 +206,7 @@ const ChatHistory = () => {
   );
 
   useEffect(() => {
+    lastThreadFingerprintRef.current = "";
     lastMessageCountRef.current = 0;
     setChatHistory([]);
     loadChatHistory(false);
@@ -368,24 +398,41 @@ const ChatHistory = () => {
               </div>
             ) : (
               <div className="flex flex-col gap-4">
-                {chatHistory.map((msg, i) => (
-                  <div
-                    key={i}
-                    className={`flex ${
-                      msg.role === "user" ? "justify-end" : "justify-start"
-                    }`}
-                  >
+                {visibleMessages.map((msg, i) => {
+                  const isOutbound = msg.role === "assistant";
+                  const failed =
+                    msg.status === "failed" || msg.status === "undelivered";
+                  return (
                     <div
-                      className={`max-w-[70%] px-4 py-2 rounded-2xl shadow text-sm ${
-                        msg.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
+                      key={i}
+                      className={`flex ${
+                        isOutbound ? "justify-end" : "justify-start"
                       }`}
                     >
-                      {msg.content}
+                      <div
+                        className={`max-w-[70%] px-4 py-2 rounded-2xl shadow text-sm whitespace-pre-wrap ${
+                          isOutbound
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted"
+                        }`}
+                      >
+                        {msg.content}
+                        {isOutbound && msg.status ? (
+                          <p
+                            className={`text-[10px] mt-1 ${
+                              failed
+                                ? "text-red-200"
+                                : "opacity-80"
+                            }`}
+                          >
+                            {statusLabel(msg.status)}
+                            {msg.error ? ` · ${msg.error}` : ""}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
