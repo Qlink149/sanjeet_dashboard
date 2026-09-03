@@ -212,6 +212,7 @@ export const fetchFilteredLeads = ({
   limit = 25,
   whatsappReady = true,
   noNumber = false,
+  notWhatsappReady = false,
   signal,
 }) => {
   const params = new URLSearchParams();
@@ -221,8 +222,24 @@ export const fetchFilteredLeads = ({
   if (source) params.set("source", source);
   if (search) params.set("search", search);
   if (noNumber) params.set("no_number", "true");
+  if (notWhatsappReady) params.set("not_whatsapp_ready", "true");
   params.set("whatsapp_ready", whatsappReady ? "true" : "false");
   params.set("page", page);
   params.set("limit", limit);
   return api(`${BASE_URL}/leads/filtered?${params.toString()}`, "GET", null, signal);
 };
+
+export const fetchMasterclasses = (signal) =>
+  api(`${BASE_URL}/masterclasses`, "GET", null, signal);
+
+export const createMasterclass = (payload) =>
+  api(`${BASE_URL}/masterclasses`, "POST", payload);
+
+export const updateMasterclass = (masterclassId, payload) =>
+  api(`${BASE_URL}/masterclasses/${masterclassId}`, "PATCH", payload);
+
+export const activateMasterclass = (masterclassId) =>
+  api(`${BASE_URL}/masterclasses/${masterclassId}/activate`, "POST");
+
+export const deleteMasterclass = (masterclassId) =>
+  api(`${BASE_URL}/masterclasses/${masterclassId}`, "DELETE");

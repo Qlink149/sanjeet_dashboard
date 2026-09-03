@@ -17,6 +17,7 @@ const CampaignAnalytics = lazy(() => import("./pages/whatsapp/CampaignAnalytics"
 const CampaignAnalyticsDetail = lazy(
   () => import("./pages/whatsapp/CampaignAnalyticsDetail")
 );
+const Masterclasses = lazy(() => import("./pages/whatsapp/Masterclasses"));
 
 const PageFallback = () => (
   <div className="flex items-center justify-center h-[70vh]">
@@ -38,6 +39,7 @@ function App() {
                 <Route path="templates" element={<AllTemplates />} />
                 <Route path="/trigger-campaign" element={<TriggerCampaign />} />
                 <Route path="/leads" element={<Leads />} />
+                <Route path="/masterclasses" element={<Masterclasses />} />
                 <Route path="/campaign-analytics" element={<CampaignAnalytics />} />
                 <Route
                   path="/campaign-analytics/:id"

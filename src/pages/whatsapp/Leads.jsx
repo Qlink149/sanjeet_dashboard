@@ -125,6 +125,7 @@ const Leads = () => {
           limit: PAGE_SIZE,
           whatsappReady: cardFilter === "whatsapp",
           noNumber: cardFilter === "no_number",
+          notWhatsappReady: cardFilter === "not_whatsapp",
           signal: controller.signal,
         });
         if (res?.cancelled) return;
@@ -200,6 +201,7 @@ const Leads = () => {
 
   const cards = [
     { key: "whatsapp", label: "WhatsApp-ready", value: stats?.whatsapp_ready ?? 0 },
+    { key: "not_whatsapp", label: "Not WhatsApp-ready", value: stats?.not_whatsapp_ready ?? 0 },
     { key: "converted", label: "Converted", value: stats?.converted ?? 0 },
     { key: "nurture", label: "Nurture", value: stats?.nurture ?? 0 },
     { key: "no_number", label: "No number", value: stats?.no_number ?? 0 },
@@ -232,7 +234,7 @@ const Leads = () => {
         <p className="text-sm text-destructive">{statsError}</p>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {cards.map((card) => (
           <div
             key={card.key}
@@ -418,7 +420,11 @@ const Leads = () => {
                 <SheetTitle>{selected.name || "Person"}</SheetTitle>
                 <SheetDescription>
                   {selected.contact_number || "No WhatsApp number"}
-                  {selected.whatsapp_ready ? " · ready to message" : ""}
+                  {selected.whatsapp_ready
+                    ? " · ready to message"
+                    : selected.contact_number
+                      ? " · not WhatsApp-ready"
+                      : ""}
                 </SheetDescription>
               </SheetHeader>
               {drawerLoading ? (
@@ -438,6 +444,22 @@ const Leads = () => {
                     {selected.email || "—"}
                   </p>
                   <p>
+                    <span className="text-muted-foreground">Phone class: </span>
+                    {selected.phone_class || "—"}
+                  </p>
+                  {(selected.contact_numbers || []).length > 0 && (
+                    <p>
+                      <span className="text-muted-foreground">All numbers: </span>
+                      {selected.contact_numbers.join(", ")}
+                    </p>
+                  )}
+                  {selected.quiz_archetype && (
+                    <p>
+                      <span className="text-muted-foreground">Quiz archetype: </span>
+                      {selected.quiz_archetype}
+                    </p>
+                  )}
+                  <p>
                     <span className="text-muted-foreground">Source: </span>
                     {selected.source || "—"}
                   </p>
@@ -445,6 +467,32 @@ const Leads = () => {
                     <span className="text-muted-foreground">Products: </span>
                     {(selected.products || []).join(", ") || "—"}
                   </p>
+                  {(selected.masterclass_registrations || []).length > 0 && (
+                    <div className="pt-1">
+                      <p className="font-medium mb-2">Masterclass registrations</p>
+                      <div className="space-y-2">
+                        {selected.masterclass_registrations.map((r, i) => (
+                          <div key={r.masterclass_id || i} className="border rounded-md p-2">
+                            <p>{r.title || "Masterclass"}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {r.registered_at
+                                ? new Date(r.registered_at).toLocaleString()
+                                : "—"}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {selected.masterclass_registered_at &&
+                    !(selected.masterclass_registrations || []).length && (
+                      <p>
+                        <span className="text-muted-foreground">
+                          Last masterclass reg:{" "}
+                        </span>
+                        {new Date(selected.masterclass_registered_at).toLocaleString()}
+                      </p>
+                    )}
                   <p>
                     <span className="text-muted-foreground">Status: </span>
                     {selected.status_raw || "—"}

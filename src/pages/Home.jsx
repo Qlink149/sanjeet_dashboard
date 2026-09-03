@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchLeadStats, getAllCampaigns } from "@/utils/apiUtils";
 import StatCard from "@/components/ui/statsCard";
-import { Loader2, Users, MessageCircle, Sparkles, Ban, Send } from "lucide-react";
+import { Loader2, Users, MessageCircle, Sparkles, Ban, Send, PhoneOff } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -71,6 +71,13 @@ const Home = () => {
       state: { presetCard: "whatsapp" },
     },
     {
+      title: error ? "—" : stats?.not_whatsapp_ready ?? 0,
+      subtitle: "Not WhatsApp-ready",
+      icon: PhoneOff,
+      to: "/leads",
+      state: { presetCard: "not_whatsapp" },
+    },
+    {
       title: error ? "—" : stats?.converted ?? 0,
       subtitle: "Converted",
       icon: Sparkles,
@@ -106,7 +113,7 @@ const Home = () => {
         <p className="text-sm text-destructive">{error}</p>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {cards.map((card) => (
           <button
             key={card.subtitle}
