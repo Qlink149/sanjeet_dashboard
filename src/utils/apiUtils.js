@@ -207,6 +207,7 @@ export const fetchFilteredLeads = ({
   pipeline,
   product,
   source,
+  masterclassId,
   search = "",
   page = 1,
   limit = 25,
@@ -220,6 +221,7 @@ export const fetchFilteredLeads = ({
   if (pipeline) params.set("pipeline", pipeline);
   if (product) params.set("product", product);
   if (source) params.set("source", source);
+  if (masterclassId) params.set("masterclass_id", masterclassId);
   if (search) params.set("search", search);
   if (noNumber) params.set("no_number", "true");
   if (notWhatsappReady) params.set("not_whatsapp_ready", "true");
@@ -231,6 +233,9 @@ export const fetchFilteredLeads = ({
 
 export const fetchMasterclasses = (signal) =>
   api(`${BASE_URL}/masterclasses`, "GET", null, signal);
+
+export const fetchMasterclassRegistrants = (masterclassId, signal) =>
+  api(`${BASE_URL}/masterclasses/${masterclassId}/registrants`, "GET", null, signal);
 
 export const createMasterclass = (payload) =>
   api(`${BASE_URL}/masterclasses`, "POST", payload);

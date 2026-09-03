@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -19,12 +20,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Plus, RefreshCcw, Trash2 } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Loader2, Plus, RefreshCcw, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import {
   activateMasterclass,
   createMasterclass,
   deleteMasterclass,
+  fetchMasterclassRegistrants,
   fetchMasterclasses,
   updateMasterclass,
 } from "@/utils/apiUtils";
@@ -36,16 +45,25 @@ const truncate = (url, n = 42) => {
   return url.length <= n ? url : `${url.slice(0, n)}…`;
 };
 
-const formatWhen = (iso) => {
+const formatIst = (iso) => {
   if (!iso) return "—";
   try {
-    return new Date(iso).toLocaleString();
+    return new Intl.DateTimeFormat("en-IN", {
+      timeZone: "Asia/Kolkata",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).format(new Date(iso));
   } catch {
     return iso;
   }
 };
 
 const Masterclasses = () => {
+  const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [spin, setSpin] = useState(false);
@@ -54,6 +72,9 @@ const Masterclasses = () => {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState(null);
+  const [rosterMc, setRosterMc] = useState(null);
+  const [registrants, setRegistrants] = useState([]);
+  const [rosterLoading, setRosterLoading] = useState(false);
 
   const load = useCallback(async (signal) => {
     setSpin(true);
@@ -96,6 +117,24 @@ const Masterclasses = () => {
       activate: false,
     });
     setFormOpen(true);
+  };
+
+  const openRoster = async (row) => {
+    setRosterMc(row);
+    setRegistrants([]);
+    setRosterLoading(true);
+    try {
+      const res = await fetchMasterclassRegistrants(row.masterclass_id);
+      if (!res?.success) {
+        toast.error(res?.message || "Could not load registrants");
+        return;
+      }
+      setRegistrants(res.data || []);
+    } catch (e) {
+      toast.error(e?.message || "Could not load registrants");
+    } finally {
+      setRosterLoading(false);
+    }
   };
 
   const onSave = async () => {
@@ -220,6 +259,7 @@ const Masterclasses = () => {
               <TableRow>
                 <TableHead>Title</TableHead>
                 <TableHead>Meeting link</TableHead>
+                <TableHead>Leads</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Updated</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -241,6 +281,17 @@ const Masterclasses = () => {
                     </a>
                   </TableCell>
                   <TableCell>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="px-2"
+                      onClick={() => openRoster(row)}
+                    >
+                      <Users className="w-3.5 h-3.5 mr-1" />
+                      {row.registrant_count ?? 0}
+                    </Button>
+                  </TableCell>
+                  <TableCell>
                     {row.is_active ? (
                       <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
                         Active
@@ -250,7 +301,7 @@ const Masterclasses = () => {
                     )}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {formatWhen(row.updated_at)}
+                    {formatIst(row.updated_at)} IST
                   </TableCell>
                   <TableCell className="text-right space-x-2">
                     {!row.is_active && (
@@ -351,6 +402,64 @@ const Masterclasses = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Sheet
+        open={!!rosterMc}
+        onOpenChange={(open) => !open && setRosterMc(null)}
+      >
+        <SheetContent className="overflow-y-auto sm:max-w-md">
+          {rosterMc && (
+            <>
+              <SheetHeader>
+                <SheetTitle>{rosterMc.title}</SheetTitle>
+                <SheetDescription>
+                  People who received this masterclass link via WhatsApp
+                </SheetDescription>
+              </SheetHeader>
+              <div className="px-4 pb-6 space-y-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    navigate("/leads", {
+                      state: { presetMasterclassId: rosterMc.masterclass_id },
+                    })
+                  }
+                >
+                  Open in People filter
+                </Button>
+                {rosterLoading ? (
+                  <div className="flex justify-center py-10">
+                    <Loader2 className="animate-spin" />
+                  </div>
+                ) : registrants.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No registrations yet.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {registrants.map((r) => (
+                      <div
+                        key={r.lead_id}
+                        className="border rounded-md p-3 text-sm"
+                      >
+                        <p className="font-medium">{r.name || "—"}</p>
+                        <p className="text-muted-foreground">
+                          {r.contact_number || "—"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formatIst(r.registered_at)} IST
+                          {r.source ? ` · ${r.source}` : ""}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

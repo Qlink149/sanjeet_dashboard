@@ -31,6 +31,7 @@ import {
   fetchFilteredLeads,
   fetchLeadById,
   fetchLeadStats,
+  fetchMasterclasses,
 } from "@/utils/apiUtils";
 
 const PIPELINE_LABELS = {
@@ -45,10 +46,40 @@ const PIPELINE_LABELS = {
 
 const PAGE_SIZE = 50;
 
+const formatIst = (iso) => {
+  if (!iso) return "—";
+  try {
+    return (
+      new Intl.DateTimeFormat("en-IN", {
+        timeZone: "Asia/Kolkata",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }).format(new Date(iso)) + " IST"
+    );
+  } catch {
+    return iso;
+  }
+};
+
+const engagementLabel = (ev) => {
+  if (ev?.label) return ev.label;
+  if (ev?.type === "quiz_submitted") return "Quiz submitted";
+  if (ev?.type === "masterclass_registered")
+    return `Registered · ${ev.title || "Masterclass"}`;
+  if (ev?.type === "masterclass_reengaged")
+    return `Re-engaged · ${ev.title || "Masterclass"}`;
+  return ev?.type || "Event";
+};
+
 const Leads = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const presetCard = location.state?.presetCard;
+  const presetMasterclassId = location.state?.presetMasterclassId;
 
   const [leads, setLeads] = useState([]);
   const [total, setTotal] = useState(0);
@@ -60,6 +91,10 @@ const Leads = () => {
   const [pipelineFilter, setPipelineFilter] = useState("all");
   const [productFilter, setProductFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
+  const [masterclassFilter, setMasterclassFilter] = useState(
+    presetMasterclassId || "all"
+  );
+  const [masterclasses, setMasterclasses] = useState([]);
   const [cardFilter, setCardFilter] = useState(presetCard || "all");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState(null);
@@ -69,13 +104,24 @@ const Leads = () => {
   const [statsLoading, setStatsLoading] = useState(true);
 
   useEffect(() => {
+    if (presetMasterclassId) setMasterclassFilter(presetMasterclassId);
+  }, [presetMasterclassId]);
+
+  useEffect(() => {
     const t = setTimeout(() => setSearchQuery(searchInput.trim()), 300);
     return () => clearTimeout(t);
   }, [searchInput]);
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, pipelineFilter, productFilter, sourceFilter, cardFilter]);
+  }, [
+    searchQuery,
+    pipelineFilter,
+    productFilter,
+    sourceFilter,
+    masterclassFilter,
+    cardFilter,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,6 +135,10 @@ const Leads = () => {
       } else if (!statsRes?.cancelled) {
         setStatsError(statsRes?.message || "Could not load people stats.");
       }
+    });
+    fetchMasterclasses().then((res) => {
+      if (cancelled || !res?.success) return;
+      setMasterclasses(res.data || []);
     });
     return () => {
       cancelled = true;
@@ -120,6 +170,8 @@ const Leads = () => {
           pipeline: pipelineForQuery,
           product: productFilter !== "all" ? productFilter : "",
           source: sourceFilter !== "all" ? sourceFilter : "",
+          masterclassId:
+            masterclassFilter !== "all" ? masterclassFilter : "",
           search: searchQuery,
           page,
           limit: PAGE_SIZE,
@@ -157,6 +209,7 @@ const Leads = () => {
     pipelineForQuery,
     productFilter,
     sourceFilter,
+    masterclassFilter,
     searchQuery,
     page,
     cardFilter,
@@ -303,6 +356,22 @@ const Leads = () => {
             {sources.map((s) => (
               <SelectItem key={s} value={s}>
                 {s} ({stats?.sources?.[s] || 0})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={masterclassFilter} onValueChange={setMasterclassFilter}>
+          <SelectTrigger className="md:w-[220px]">
+            <SelectValue placeholder="Masterclass" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All masterclasses</SelectItem>
+            {masterclasses.map((mc) => (
+              <SelectItem key={mc.masterclass_id} value={mc.masterclass_id}>
+                {mc.title}
+                {typeof mc.registrant_count === "number"
+                  ? ` (${mc.registrant_count})`
+                  : ""}
               </SelectItem>
             ))}
           </SelectContent>
@@ -467,31 +536,39 @@ const Leads = () => {
                     <span className="text-muted-foreground">Products: </span>
                     {(selected.products || []).join(", ") || "—"}
                   </p>
-                  {(selected.masterclass_registrations || []).length > 0 && (
+                  {(selected.engagement || []).length > 0 && (
                     <div className="pt-1">
-                      <p className="font-medium mb-2">Masterclass registrations</p>
-                      <div className="space-y-2">
-                        {selected.masterclass_registrations.map((r, i) => (
-                          <div key={r.masterclass_id || i} className="border rounded-md p-2">
-                            <p>{r.title || "Masterclass"}</p>
+                      <p className="font-medium mb-2">Engagement</p>
+                      <div className="space-y-2 border-l-2 border-muted pl-3">
+                        {selected.engagement.map((ev, i) => (
+                          <div key={`${ev.type}-${ev.at}-${i}`} className="text-sm">
+                            <p>{engagementLabel(ev)}</p>
                             <p className="text-xs text-muted-foreground">
-                              {r.registered_at
-                                ? new Date(r.registered_at).toLocaleString()
-                                : "—"}
+                              {formatIst(ev.at)}
                             </p>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
-                  {selected.masterclass_registered_at &&
-                    !(selected.masterclass_registrations || []).length && (
-                      <p>
-                        <span className="text-muted-foreground">
-                          Last masterclass reg:{" "}
-                        </span>
-                        {new Date(selected.masterclass_registered_at).toLocaleString()}
-                      </p>
+                  {(selected.masterclass_registrations || []).length > 0 &&
+                    !(selected.engagement || []).length && (
+                      <div className="pt-1">
+                        <p className="font-medium mb-2">Masterclass registrations</p>
+                        <div className="space-y-2">
+                          {selected.masterclass_registrations.map((r, i) => (
+                            <div
+                              key={r.masterclass_id || i}
+                              className="border rounded-md p-2"
+                            >
+                              <p>{r.title || "Masterclass"}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatIst(r.registered_at)}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   <p>
                     <span className="text-muted-foreground">Status: </span>
@@ -520,7 +597,7 @@ const Leads = () => {
                   )}
                   {(selected.history || []).length > 0 && (
                     <div className="pt-2">
-                      <p className="font-medium mb-2">History</p>
+                      <p className="font-medium mb-2">Import history</p>
                       <div className="space-y-2">
                         {selected.history.map((h, i) => (
                           <div key={i} className="border rounded-md p-2">
