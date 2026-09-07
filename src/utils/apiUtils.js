@@ -66,6 +66,9 @@ export const getAllDocs = (page = 1, limit = 20, search = "", signal) => {
 export const getDocById = (id, signal) =>
   api(`${BASE_URL}/chat/${id}`, "GET", null, signal);
 
+export const sendChatMessage = (docId, text) =>
+  api(`${BASE_URL}/chat/send`, "POST", { doc_id: docId, text });
+
 export const getAllTemplates = (signal) =>
   api(`${BASE_URL}/chat/template/all`, "GET", null, signal, 20000);
 

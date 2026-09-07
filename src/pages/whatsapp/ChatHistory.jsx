@@ -19,7 +19,8 @@ import {
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { getAllDocs, getDocById } from "@/utils/apiUtils";
+import { getAllDocs, getDocById, sendChatMessage } from "@/utils/apiUtils";
+import { toast } from "sonner";
 
 const AUTO_REFRESH_INTERVAL = 20000;
 const PAGE_SIZE = 50;
@@ -40,6 +41,8 @@ const ChatHistory = () => {
   const [loadingChat, setLoadingChat] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [listError, setListError] = useState("");
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
 
   const chatContainerRef = useRef(null);
   const isUserScrollingRef = useRef(false);
@@ -130,6 +133,33 @@ const ChatHistory = () => {
       return [];
     }
   }, []);
+
+  const handleSend = async () => {
+    const text = draft.trim();
+    if (!text || !selectedUser?._id || sending) return;
+    setSending(true);
+    try {
+      const res = await sendChatMessage(selectedUser._id, text);
+      if (!res?.success) {
+        toast.error(
+          res?.message ||
+            "Send failed. Free-form messages need an open 24h WhatsApp window."
+        );
+      } else {
+        setDraft("");
+      }
+      const history = await fetchChatHistory(selectedUser._id);
+      if (history) setChatHistory(history);
+    } catch (e) {
+      toast.error(e?.message || "Could not send message");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  useEffect(() => {
+    setDraft("");
+  }, [selectedUser?._id]);
 
   useEffect(() => {
     fetchChatList({ silent: false });
@@ -435,6 +465,34 @@ const ChatHistory = () => {
                 })}
               </div>
             )}
+          </div>
+
+          <div className="border-t p-3 bg-card flex gap-2 items-end">
+            <textarea
+              className="flex-1 min-h-[44px] max-h-32 resize-none rounded-md border bg-background px-3 py-2 text-sm"
+              placeholder="Type a message…"
+              rows={1}
+              value={draft}
+              disabled={sending}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+            />
+            <Button
+              onClick={handleSend}
+              disabled={sending || !draft.trim()}
+              className="shrink-0"
+            >
+              {sending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
           </div>
         </div>
       ) : (
