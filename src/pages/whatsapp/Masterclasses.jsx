@@ -40,11 +40,6 @@ import {
 
 const EMPTY_FORM = { title: "", meeting_link: "", notes: "", activate: false };
 
-const truncate = (url, n = 42) => {
-  if (!url) return "—";
-  return url.length <= n ? url : `${url.slice(0, n)}…`;
-};
-
 const formatIst = (iso) => {
   if (!iso) return "—";
   try {
@@ -141,7 +136,7 @@ const Masterclasses = () => {
     const title = form.title.trim();
     const meeting_link = form.meeting_link.trim();
     if (!title || !meeting_link) {
-      toast.error("Title and meeting link are required");
+      toast.error("Title and WhatsApp message are required");
       return;
     }
     setSaving(true);
@@ -220,7 +215,7 @@ const Masterclasses = () => {
         <div>
           <h1 className="text-3xl">Masterclasses</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Exactly one Active link is sent when someone asks on WhatsApp.
+            Exactly one Active message is sent when someone taps Yes on WhatsApp.
           </p>
         </div>
         <div className="flex gap-2">
@@ -240,7 +235,7 @@ const Masterclasses = () => {
 
       {!loading && !hasActive && (
         <div className="border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-100 rounded-md px-4 py-3 text-sm">
-          WhatsApp will not send a link until one is Active.
+          WhatsApp will not send a message until one is Active.
         </div>
       )}
 
@@ -258,7 +253,7 @@ const Masterclasses = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Title</TableHead>
-                <TableHead>Meeting link</TableHead>
+                <TableHead>WhatsApp message</TableHead>
                 <TableHead>Leads</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Updated</TableHead>
@@ -269,16 +264,13 @@ const Masterclasses = () => {
               {rows.map((row) => (
                 <TableRow key={row.masterclass_id}>
                   <TableCell className="font-medium">{row.title}</TableCell>
-                  <TableCell>
-                    <a
-                      href={row.meeting_link}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-primary underline-offset-2 hover:underline"
+                  <TableCell className="max-w-xs">
+                    <div
+                      className="text-xs whitespace-pre-wrap max-h-24 overflow-y-auto text-muted-foreground"
                       title={row.meeting_link}
                     >
-                      {truncate(row.meeting_link)}
-                    </a>
+                      {row.meeting_link || "—"}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Button
@@ -339,7 +331,7 @@ const Masterclasses = () => {
       </div>
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {editing ? "Edit masterclass" : "New masterclass"}
@@ -358,15 +350,21 @@ const Masterclasses = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="mc-link">Meeting URL</Label>
-              <Input
+              <Label htmlFor="mc-link">WhatsApp message</Label>
+              <Textarea
                 id="mc-link"
                 value={form.meeting_link}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, meeting_link: e.target.value }))
                 }
-                placeholder="https://…"
+                rows={6}
+                className="min-h-[140px] resize-y font-mono text-sm whitespace-pre-wrap"
+                placeholder="Money MasterClass&#10;Saturday, 26 Sep · 11AM – 1PM&#10;&#10;Join here: https://meet.google.com/…"
               />
+              <p className="text-xs text-muted-foreground">
+                Sent as-is when someone taps Yes. Include date, details, and Meet
+                link. Line breaks are preserved.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="mc-notes">Notes (optional)</Label>
