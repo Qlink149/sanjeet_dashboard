@@ -11,6 +11,7 @@ import {
   Download,
   ChevronLeft,
   ChevronRight,
+  Clock,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -42,6 +43,7 @@ const EMPTY_STATS = {
   delivered: 0,
   read: 0,
   failed: 0,
+  retry_pending: 0,
   delivery_rate: 0,
   read_rate: 0,
 };
@@ -50,6 +52,35 @@ const formatWhen = (value) => {
   if (!value) return "—";
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
+};
+
+const formatIst = (value) => {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(d);
+};
+
+const attemptLabel = (recipient) => {
+  if ((recipient?.retry_count || 0) > 0) return "Retry";
+  const attempts = recipient?.attempts || [];
+  const last = attempts[attempts.length - 1];
+  if (last?.kind === "retry") return "Retry";
+  return "Initial";
+};
+
+const isRetryScheduled = (recipient) => {
+  if (!recipient?.retry_at) return false;
+  if (!["failed", "undelivered"].includes(recipient.status)) return false;
+  const retryAt = new Date(recipient.retry_at);
+  return !Number.isNaN(retryAt.getTime()) && retryAt > new Date();
 };
 
 const CampaignAnalyticsDetail = () => {
@@ -169,6 +200,9 @@ const CampaignAnalyticsDetail = () => {
         <p className="text-sm text-muted-foreground">
           Sent {formatWhen(campaign.created_at)}
         </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          Retriable failures auto-retry once after 3 hours.
+        </p>
       </div>
 
       {loadError && (
@@ -205,7 +239,7 @@ const CampaignAnalyticsDetail = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <StatCard
           title={`${stats.delivery_rate}%`}
           subtitle="Delivery rate"
@@ -215,6 +249,12 @@ const CampaignAnalyticsDetail = () => {
           title={`${stats.read_rate}%`}
           subtitle="Read rate"
           icon={Percent}
+        />
+        <StatCard
+          title={stats.retry_pending ?? 0}
+          subtitle="Retry scheduled"
+          icon={Clock}
+          iconColor="text-amber-600"
         />
       </div>
 
@@ -254,6 +294,7 @@ const CampaignAnalyticsDetail = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Phone Number</TableHead>
+                <TableHead>Attempt</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Reason</TableHead>
               </TableRow>
@@ -262,10 +303,18 @@ const CampaignAnalyticsDetail = () => {
               {recipients.map((r) => (
                 <TableRow key={r.phone_number}>
                   <TableCell>{r.phone_number}</TableCell>
+                  <TableCell className="text-sm">{attemptLabel(r)}</TableCell>
                   <TableCell>
-                    <Badge className={STATUS_STYLES[r.status] || ""}>
-                      {r.status}
-                    </Badge>
+                    <div className="flex flex-col gap-1 items-start">
+                      <Badge className={STATUS_STYLES[r.status] || ""}>
+                        {r.status}
+                      </Badge>
+                      {isRetryScheduled(r) && (
+                        <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+                          Retry at {formatIst(r.retry_at)} IST
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground max-w-[420px]">
                     {r.error || "—"}
@@ -276,7 +325,7 @@ const CampaignAnalyticsDetail = () => {
               {recipients.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={3}
+                    colSpan={4}
                     className="text-center text-muted-foreground py-6"
                   >
                     No recipients in this bucket.
