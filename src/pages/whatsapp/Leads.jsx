@@ -45,6 +45,7 @@ const PIPELINE_LABELS = {
 };
 
 const PAGE_SIZE = 50;
+const QUIZ_SOURCE = "Money Ceiling Quiz";
 
 const formatIst = (iso) => {
   if (!iso) return "—";
@@ -153,6 +154,11 @@ const Leads = () => {
     return fromSelect || fromCard || "";
   }, [pipelineFilter, cardFilter]);
 
+  const sourceForQuery = useMemo(() => {
+    if (cardFilter === "quiz_filled") return QUIZ_SOURCE;
+    return sourceFilter !== "all" ? sourceFilter : "";
+  }, [cardFilter, sourceFilter]);
+
   useEffect(() => {
     if (pipelineForQuery === "__none__") {
       setLeads([]);
@@ -169,7 +175,7 @@ const Leads = () => {
         const res = await fetchFilteredLeads({
           pipeline: pipelineForQuery,
           product: productFilter !== "all" ? productFilter : "",
-          source: sourceFilter !== "all" ? sourceFilter : "",
+          source: sourceForQuery,
           masterclassId:
             masterclassFilter !== "all" ? masterclassFilter : "",
           search: searchQuery,
@@ -208,7 +214,7 @@ const Leads = () => {
   }, [
     pipelineForQuery,
     productFilter,
-    sourceFilter,
+    sourceForQuery,
     masterclassFilter,
     searchQuery,
     page,
@@ -253,6 +259,7 @@ const Leads = () => {
   const showTableSkeleton = loading || (tableLoading && leads.length === 0);
 
   const cards = [
+    { key: "quiz_filled", label: "Quiz filled", value: stats?.quiz_filled ?? 0 },
     { key: "whatsapp", label: "WhatsApp-ready", value: stats?.whatsapp_ready ?? 0 },
     { key: "not_whatsapp", label: "Not WhatsApp-ready", value: stats?.not_whatsapp_ready ?? 0 },
     { key: "converted", label: "Converted", value: stats?.converted ?? 0 },
@@ -287,7 +294,7 @@ const Leads = () => {
         <p className="text-sm text-destructive">{statsError}</p>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {cards.map((card) => (
           <div
             key={card.key}
@@ -298,7 +305,11 @@ const Leads = () => {
             } ${cardFilter === card.key ? "ring-2 ring-primary" : ""}`}
             onClick={() => {
               if (statsLoading) return;
-              setCardFilter((prev) => (prev === card.key ? "all" : card.key));
+              const next = cardFilter === card.key ? "all" : card.key;
+              setCardFilter(next);
+              if (card.key === "quiz_filled" && next === "quiz_filled") {
+                setSourceFilter("all");
+              }
             }}
           >
             <p className="text-sm text-muted-foreground">{card.label}</p>

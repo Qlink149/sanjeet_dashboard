@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchLeadStats, getAllCampaigns } from "@/utils/apiUtils";
 import StatCard from "@/components/ui/statsCard";
-import { Loader2, Users, MessageCircle, Sparkles, Ban, Send, PhoneOff } from "lucide-react";
+import { Loader2, Users, MessageCircle, Sparkles, Ban, Send, PhoneOff, ClipboardList } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -63,6 +63,13 @@ const Home = () => {
   }
 
   const cards = [
+    {
+      title: error ? "—" : stats?.quiz_filled ?? 0,
+      subtitle: "Quiz filled",
+      icon: ClipboardList,
+      to: "/leads",
+      state: { presetCard: "quiz_filled" },
+    },
     {
       title: error ? "—" : stats?.whatsapp_ready ?? 0,
       subtitle: "WhatsApp-ready",
