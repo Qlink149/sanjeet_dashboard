@@ -260,7 +260,11 @@ const TriggerCampaign = () => {
         }
         res = await triggerTemplateWithPhones(campaign, phones);
       }
-      setResult(res);
+      setResult(
+        res?.success
+          ? { ...res, triggered_at: new Date().toISOString() }
+          : res
+      );
       if (res?.success) {
         setRows([{ code: "91", number: "" }]);
         setFile(null);
@@ -270,6 +274,13 @@ const TriggerCampaign = () => {
         setSelectionMode("all");
         setExceptions(new Set());
         setLeadSearchInput("");
+        if (res.campaign_id) {
+          const count = res.total ?? 0;
+          toast.success(
+            `Campaign created — ${count} recipient${count === 1 ? "" : "s"}`
+          );
+          navigate(`/campaign-analytics/${res.campaign_id}`);
+        }
       }
     } catch {
       setResult({
@@ -587,11 +598,26 @@ const TriggerCampaign = () => {
                 {result.status === "queued" ? (
                   <p>
                     Queued {result.total} recipient
-                    {result.total === 1 ? "" : "s"} — check analytics for progress.
+                    {result.total === 1 ? "" : "s"} — opening analytics…
+                  </p>
+                ) : result.status === "sent" ? (
+                  <p>
+                    Sent to {result.total} recipient
+                    {result.total === 1 ? "" : "s"} — opening analytics…
                   </p>
                 ) : (
                   <p>
                     Sent {result.sent} / {result.total}
+                  </p>
+                )}
+                {result.campaign_id && (
+                  <p className="text-xs font-mono opacity-80">
+                    ID: {result.campaign_id}
+                  </p>
+                )}
+                {result.triggered_at && (
+                  <p className="text-xs opacity-80">
+                    {new Date(result.triggered_at).toLocaleString()}
                   </p>
                 )}
                 {result.campaign_id && (

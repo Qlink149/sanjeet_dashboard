@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getAllCampaigns } from "@/utils/apiUtils";
+
+const POLL_INTERVAL_MS = 30000;
 
 const formatWhen = (value) => {
   if (!value) return "—";
@@ -16,29 +18,46 @@ const CampaignAnalytics = () => {
   const [spin, setSpin] = useState(false);
   const [error, setError] = useState("");
 
-  const load = async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await getAllCampaigns();
       if (res?.cancelled) return;
       if (!res?.success) {
         setError(res?.message || "Could not load campaigns.");
-        setCampaigns([]);
+        if (!silent) setCampaigns([]);
         return;
       }
       setError("");
       setCampaigns(res?.data || []);
     } catch {
       setError("Could not load campaigns.");
-      setCampaigns([]);
+      if (!silent) setCampaigns([]);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
+
+  useEffect(() => {
+    const refresh = () => load(true);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", onVisible);
+    const interval = setInterval(refresh, POLL_INTERVAL_MS);
+
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", onVisible);
+      clearInterval(interval);
+    };
+  }, [load]);
 
   if (loading)
     return (

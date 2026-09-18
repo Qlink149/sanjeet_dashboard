@@ -92,7 +92,37 @@ const EMPTY_FORM = {
   example: "",
 };
 
-const EMPTY_BUTTON_ROW = { text: "", url: "" };
+const EMPTY_BUTTON_ROW = { type: "URL", text: "", url: "" };
+const MAX_QUICK_REPLY_BUTTONS = 3;
+
+const normalizeButtonRows = (rows) =>
+  rows.map((row) => ({
+    type: row.type === "QUICK_REPLY" ? "QUICK_REPLY" : "URL",
+    text: row.text || "",
+    url: row.url || "",
+  }));
+
+const buildValidButtons = (rows) =>
+  normalizeButtonRows(rows)
+    .filter((b) => {
+      if (!b.text.trim()) return false;
+      if (b.type === "QUICK_REPLY") return true;
+      return b.url.trim();
+    })
+    .map((b) =>
+      b.type === "QUICK_REPLY"
+        ? { type: "QUICK_REPLY", text: b.text.trim() }
+        : { text: b.text.trim(), url: b.url.trim() }
+    );
+
+const buttonTypeLabel = (button) => {
+  if (button.type === "QUICK_REPLY" || button.type === "quick_reply") {
+    return "Quick Reply";
+  }
+  if (button.type === "URL" || button.url) return "URL";
+  if (!button.url) return "Quick Reply";
+  return "URL";
+};
 
 const AllTemplates = () => {
   const navigate = useNavigate();
@@ -264,7 +294,10 @@ const AllTemplates = () => {
 
   const updateButtonRow = (index, field, value) => {
     const updated = [...buttonRows];
-    updated[index][field] = value;
+    updated[index] = { ...updated[index], [field]: value };
+    if (field === "type" && value === "QUICK_REPLY") {
+      updated[index].url = "";
+    }
     setButtonRows(updated);
   };
 
@@ -292,9 +325,15 @@ const AllTemplates = () => {
       if (form.footer) formData.append("footer", form.footer);
       if (image) formData.append("image", image);
 
-      const validButtons = buttonRows.filter(
-        (b) => b.text.trim() && b.url.trim()
-      );
+      const validButtons = buildValidButtons(buttonRows);
+      const quickReplyCount = validButtons.filter(
+        (b) => b.type === "QUICK_REPLY"
+      ).length;
+      if (quickReplyCount > MAX_QUICK_REPLY_BUTTONS) {
+        toast.error(`WhatsApp allows up to ${MAX_QUICK_REPLY_BUTTONS} Quick Reply buttons.`);
+        setCreating(false);
+        return;
+      }
       if (validButtons.length > 0) {
         formData.append("buttons", JSON.stringify(validButtons));
       }
@@ -493,21 +532,43 @@ const AllTemplates = () => {
                   </div>
 
                   {buttonRows.map((row, index) => (
-                    <div key={index} className="flex gap-2 items-start">
+                    <div key={index} className="flex gap-2 items-start flex-wrap">
+                      <Select
+                        value={row.type || "URL"}
+                        onValueChange={(value) =>
+                          updateButtonRow(index, "type", value)
+                        }
+                      >
+                        <SelectTrigger className="w-[140px] shrink-0">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="URL">URL</SelectItem>
+                          <SelectItem value="QUICK_REPLY">Quick Reply</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <Input
-                        placeholder="Button text"
+                        className="min-w-[140px] flex-1"
+                        placeholder={
+                          row.type === "QUICK_REPLY"
+                            ? "Button label (e.g. Yes)"
+                            : "Button text"
+                        }
                         value={row.text}
                         onChange={(e) =>
                           updateButtonRow(index, "text", e.target.value)
                         }
                       />
-                      <Input
-                        placeholder="https://example.com"
-                        value={row.url}
-                        onChange={(e) =>
-                          updateButtonRow(index, "url", e.target.value)
-                        }
-                      />
+                      {row.type !== "QUICK_REPLY" && (
+                        <Input
+                          className="min-w-[180px] flex-1"
+                          placeholder="https://example.com"
+                          value={row.url}
+                          onChange={(e) =>
+                            updateButtonRow(index, "url", e.target.value)
+                          }
+                        />
+                      )}
                       {buttonRows.length > 1 && (
                         <Button
                           variant="ghost"
@@ -521,7 +582,9 @@ const AllTemplates = () => {
                     </div>
                   ))}
                   <p className="text-xs text-muted-foreground">
-                    Each button becomes a URL button on the template.
+                    URL opens a link when tapped. Quick Reply sends the label
+                    back as a WhatsApp message (e.g. Yes). Up to{" "}
+                    {MAX_QUICK_REPLY_BUTTONS} Quick Reply buttons per template.
                   </p>
                 </div>
               </div>
@@ -653,6 +716,7 @@ const AllTemplates = () => {
                       {buttons.map((b, i) => (
                         <Badge key={i} className="w-fit">
                           {b.text}
+                          {b.text ? ` · ${buttonTypeLabel(b)}` : buttonTypeLabel(b)}
                         </Badge>
                       ))}
                     </div>

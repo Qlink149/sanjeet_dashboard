@@ -81,6 +81,45 @@ export const createTemplate = (formData) =>
     body: formData,
   }).then((res) => res.json());
 
+const TRIGGER_TIMEOUT_MS = 120000;
+
+const triggerTemplateForm = async (templateId, formData) => {
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, TRIGGER_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(`${BASE_URL}/template/trigger/${templateId}`, {
+      method: "POST",
+      body: formData,
+      signal: controller.signal,
+    });
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || !data) {
+      return {
+        success: false,
+        message: data?.message || `Request failed (${res.status})`,
+      };
+    }
+
+    return data;
+  } catch (err) {
+    if (err?.name === "AbortError" && timedOut) {
+      return {
+        success: false,
+        message: "Campaign trigger timed out. Try a smaller audience.",
+      };
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 export const triggerTemplateWithPhones = (templateId, phones) => {
   const formData = new FormData();
   formData.append(
@@ -91,19 +130,13 @@ export const triggerTemplateWithPhones = (templateId, phones) => {
     "phone_codes",
     phones.map((p) => p.phone_code).join(",")
   );
-  return fetch(`${BASE_URL}/template/trigger/${templateId}`, {
-    method: "POST",
-    body: formData,
-  }).then((res) => res.json());
+  return triggerTemplateForm(templateId, formData);
 };
 
 export const triggerTemplateWithExcel = (templateId, file) => {
   const formData = new FormData();
   formData.append("file", file);
-  return fetch(`${BASE_URL}/template/trigger/${templateId}`, {
-    method: "POST",
-    body: formData,
-  }).then((res) => res.json());
+  return triggerTemplateForm(templateId, formData);
 };
 
 export const triggerTemplateWithCategory = (
@@ -120,10 +153,7 @@ export const triggerTemplateWithCategory = (
   if (excludePhoneNumbers.length > 0) {
     formData.append("exclude_phone_numbers", excludePhoneNumbers.join(","));
   }
-  return fetch(`${BASE_URL}/template/trigger/${templateId}`, {
-    method: "POST",
-    body: formData,
-  }).then((res) => res.json());
+  return triggerTemplateForm(templateId, formData);
 };
 
 export const getAllCampaigns = (limit, signal) => {
