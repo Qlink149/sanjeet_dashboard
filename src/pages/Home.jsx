@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchLeadStats, getAllCampaigns } from "@/utils/apiUtils";
 import StatCard from "@/components/ui/statsCard";
-import { Loader2, Users, MessageCircle, Sparkles, Ban, Send, PhoneOff, ClipboardList } from "lucide-react";
+import { Loader2, Users, MessageCircle, Sparkles, Ban, Send, PhoneOff, ClipboardList, UserX } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -69,6 +69,13 @@ const Home = () => {
       icon: ClipboardList,
       to: "/leads",
       state: { presetCard: "quiz_filled" },
+    },
+    {
+      title: error ? "—" : stats?.quiz_no_masterclass ?? 0,
+      subtitle: "Quiz · no MC signup",
+      icon: UserX,
+      to: "/leads",
+      state: { presetCard: "quiz_no_masterclass" },
     },
     {
       title: error ? "—" : stats?.whatsapp_ready ?? 0,

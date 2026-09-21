@@ -156,6 +156,7 @@ const Leads = () => {
 
   const sourceForQuery = useMemo(() => {
     if (cardFilter === "quiz_filled") return QUIZ_SOURCE;
+    if (cardFilter === "quiz_no_masterclass") return "";
     return sourceFilter !== "all" ? sourceFilter : "";
   }, [cardFilter, sourceFilter]);
 
@@ -184,6 +185,7 @@ const Leads = () => {
           whatsappReady: cardFilter === "whatsapp",
           noNumber: cardFilter === "no_number",
           notWhatsappReady: cardFilter === "not_whatsapp",
+          quizNoMasterclass: cardFilter === "quiz_no_masterclass",
           signal: controller.signal,
         });
         if (res?.cancelled) return;
@@ -260,6 +262,11 @@ const Leads = () => {
 
   const cards = [
     { key: "quiz_filled", label: "Quiz filled", value: stats?.quiz_filled ?? 0 },
+    {
+      key: "quiz_no_masterclass",
+      label: "Quiz · no MC signup",
+      value: stats?.quiz_no_masterclass ?? 0,
+    },
     { key: "whatsapp", label: "WhatsApp-ready", value: stats?.whatsapp_ready ?? 0 },
     { key: "not_whatsapp", label: "Not WhatsApp-ready", value: stats?.not_whatsapp_ready ?? 0 },
     { key: "converted", label: "Converted", value: stats?.converted ?? 0 },
@@ -294,7 +301,7 @@ const Leads = () => {
         <p className="text-sm text-destructive">{statsError}</p>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {cards.map((card) => (
           <div
             key={card.key}
@@ -309,6 +316,10 @@ const Leads = () => {
               setCardFilter(next);
               if (card.key === "quiz_filled" && next === "quiz_filled") {
                 setSourceFilter("all");
+              }
+              if (card.key === "quiz_no_masterclass" && next === "quiz_no_masterclass") {
+                setSourceFilter("all");
+                setMasterclassFilter("all");
               }
             }}
           >

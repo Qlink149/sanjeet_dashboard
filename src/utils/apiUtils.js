@@ -247,6 +247,7 @@ export const fetchFilteredLeads = ({
   whatsappReady = true,
   noNumber = false,
   notWhatsappReady = false,
+  quizNoMasterclass = false,
   signal,
 }) => {
   const params = new URLSearchParams();
@@ -258,6 +259,7 @@ export const fetchFilteredLeads = ({
   if (search) params.set("search", search);
   if (noNumber) params.set("no_number", "true");
   if (notWhatsappReady) params.set("not_whatsapp_ready", "true");
+  if (quizNoMasterclass) params.set("quiz_no_masterclass", "true");
   params.set("whatsapp_ready", whatsappReady ? "true" : "false");
   params.set("page", page);
   params.set("limit", limit);
