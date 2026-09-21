@@ -69,6 +69,7 @@ const formatIst = (iso) => {
 const engagementLabel = (ev) => {
   if (ev?.label) return ev.label;
   if (ev?.type === "quiz_submitted") return "Quiz submitted";
+  if (ev?.type === "quiz_reengaged") return "Quiz re-submitted";
   if (ev?.type === "masterclass_registered")
     return `Registered · ${ev.title || "Masterclass"}`;
   if (ev?.type === "masterclass_reengaged")
