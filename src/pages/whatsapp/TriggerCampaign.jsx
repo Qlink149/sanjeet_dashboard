@@ -52,6 +52,12 @@ const PIPELINE_OPTIONS = [
   { value: "not_now", label: "Not now" },
   { value: "unknown", label: "Unknown" },
   { value: "discontinued", label: "Discontinued" },
+  { value: "quiz_filled", label: "Quiz filled", countKey: "quiz_filled" },
+  {
+    value: "quiz_no_masterclass",
+    label: "Quiz · no MC signup",
+    countKey: "quiz_no_masterclass",
+  },
 ];
 
 const TriggerCampaign = () => {
@@ -338,7 +344,9 @@ const TriggerCampaign = () => {
               {PIPELINE_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
-                  {opt.value === "all_leads"
+                  {opt.countKey
+                    ? ` (${leadStats?.[opt.countKey] || 0})`
+                    : opt.value === "all_leads"
                     ? ` (${leadStats?.whatsapp_ready || 0})`
                     : ` (${leadStats?.pipelines?.[opt.value] || 0})`}
                 </SelectItem>
