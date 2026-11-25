@@ -5,6 +5,14 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/go/:slug",
+      "destination": "https://sanjeet-bot.vercel.app/go/:slug"
+    },
+    {
+      "source": "/masterclass/join",
+      "destination": "https://sanjeet-bot.vercel.app/go/masterclass"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
