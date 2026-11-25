@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 const AuthContext = createContext(null);
 const AUTH_KEY = "sanjeet_logged_in";
@@ -23,6 +24,18 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem(TOKEN_EXP_KEY);
     setLoggedIn(false);
   };
+
+  // Sessions from before tokens existed have no token, so the first
+  // authenticated request 401s and lands here once; that is expected.
+  useEffect(() => {
+    const onUnauthorized = () => {
+      if (localStorage.getItem(AUTH_KEY) !== "1") return; // already logged out
+      logout();
+      toast.error("Session expired, please log in again");
+    };
+    window.addEventListener("sanjeet:unauthorized", onUnauthorized);
+    return () => window.removeEventListener("sanjeet:unauthorized", onUnauthorized);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ loggedIn, login, logout }}>
