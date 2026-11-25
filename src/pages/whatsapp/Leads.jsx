@@ -93,6 +93,7 @@ const Leads = () => {
   const [pipelineFilter, setPipelineFilter] = useState("all");
   const [productFilter, setProductFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
+  const [segmentFilter, setSegmentFilter] = useState("all");
   const [masterclassFilter, setMasterclassFilter] = useState(
     presetMasterclassId || "all"
   );
@@ -121,6 +122,7 @@ const Leads = () => {
     pipelineFilter,
     productFilter,
     sourceFilter,
+    segmentFilter,
     masterclassFilter,
     cardFilter,
   ]);
@@ -178,6 +180,7 @@ const Leads = () => {
           pipeline: pipelineForQuery,
           product: productFilter !== "all" ? productFilter : "",
           source: sourceForQuery,
+          segment: segmentFilter !== "all" ? segmentFilter : "",
           masterclassId:
             masterclassFilter !== "all" ? masterclassFilter : "",
           search: searchQuery,
@@ -218,6 +221,7 @@ const Leads = () => {
     pipelineForQuery,
     productFilter,
     sourceForQuery,
+    segmentFilter,
     masterclassFilter,
     searchQuery,
     page,
@@ -228,6 +232,7 @@ const Leads = () => {
     () => Object.keys(stats?.products || {}),
     [stats]
   );
+  const segments = useMemo(() => Object.keys(stats?.segments || {}), [stats]);
   const sources = useMemo(
     () => Object.keys(stats?.sources || {}).filter((s) => s !== "(blank)"),
     [stats]
@@ -379,6 +384,19 @@ const Leads = () => {
             {sources.map((s) => (
               <SelectItem key={s} value={s}>
                 {s} ({stats?.sources?.[s] || 0})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={segmentFilter} onValueChange={setSegmentFilter}>
+          <SelectTrigger className="md:w-[180px]">
+            <SelectValue placeholder="Tag / segment" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All tags</SelectItem>
+            {segments.map((s) => (
+              <SelectItem key={s} value={s}>
+                {s} ({stats?.segments?.[s] || 0})
               </SelectItem>
             ))}
           </SelectContent>
