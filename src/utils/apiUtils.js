@@ -2,7 +2,7 @@ const API_ROOT = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 const BASE_URL = `${API_ROOT}/dashboard`;
 const DEFAULT_TIMEOUT_MS = 15000;
 
-const api = async (url, method = "GET", body = null, signal, timeoutMs = DEFAULT_TIMEOUT_MS) => {
+const api = async (url, method = "GET", body = null, signal, timeoutMs = DEFAULT_TIMEOUT_MS, extraHeaders = null) => {
   const controller = new AbortController();
   let timedOut = false;
   const timer = setTimeout(() => {
@@ -16,7 +16,7 @@ const api = async (url, method = "GET", body = null, signal, timeoutMs = DEFAULT
 
   const options = {
     method,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(extraHeaders || {}) },
     signal: controller.signal,
   };
   if (body) options.body = JSON.stringify(body);
@@ -28,6 +28,7 @@ const api = async (url, method = "GET", body = null, signal, timeoutMs = DEFAULT
     if (!res.ok || !data) {
       return {
         success: false,
+        unauthorized: res.status === 401,
         message: data?.message || data?.detail || `Request failed (${res.status})`,
       };
     }
@@ -284,14 +285,25 @@ export const activateMasterclass = (masterclassId) =>
 export const deleteMasterclass = (masterclassId) =>
   api(`${BASE_URL}/masterclasses/${masterclassId}`, "DELETE");
 
+// The links endpoints require the login token (Authorization: Bearer). On 401
+// the response carries `unauthorized: true` so the page can send the user to
+// login. Sessions created before tokens existed have no token, so their first
+// visit to Links bounces to login once.
+const authed = (url, method, body, signal) => {
+  const token = localStorage.getItem("sanjeet_token") || "";
+  return api(url, method, body, signal, DEFAULT_TIMEOUT_MS, {
+    Authorization: `Bearer ${token}`,
+  });
+};
+
 export const fetchLinks = (signal) =>
-  api(`${BASE_URL}/links`, "GET", null, signal);
+  authed(`${BASE_URL}/links`, "GET", null, signal);
 
 export const createLink = (payload) =>
-  api(`${BASE_URL}/links`, "POST", payload);
+  authed(`${BASE_URL}/links`, "POST", payload);
 
 export const updateLink = (slug, payload) =>
-  api(`${BASE_URL}/links/${encodeURIComponent(slug)}`, "PATCH", payload);
+  authed(`${BASE_URL}/links/${encodeURIComponent(slug)}`, "PATCH", payload);
 
 export const deleteLink = (slug) =>
-  api(`${BASE_URL}/links/${encodeURIComponent(slug)}`, "DELETE");
+  authed(`${BASE_URL}/links/${encodeURIComponent(slug)}`, "DELETE");

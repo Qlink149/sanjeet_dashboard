@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,6 +57,15 @@ const validateTarget = (target) => {
 };
 
 const Links = () => {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+  // Links calls need the login token. Sessions from before tokens existed have
+  // none, so the first visit legitimately bounces to login once.
+  const handleUnauthorized = useCallback(() => {
+    logout();
+    toast.error("Session expired, please log in again");
+    navigate("/login");
+  }, [logout, navigate]);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [spin, setSpin] = useState(false);
@@ -73,6 +84,7 @@ const Links = () => {
     try {
       const res = await fetchLinks(signal);
       if (res?.aborted) return;
+      if (res?.unauthorized) return handleUnauthorized();
       if (!res?.success) {
         setError(res?.message || "Failed to load links");
         toast.error(res?.message || "Failed to load links");
@@ -87,7 +99,7 @@ const Links = () => {
       setLoading(false);
       setSpin(false);
     }
-  }, []);
+  }, [handleUnauthorized]);
 
   useEffect(() => {
     const ac = new AbortController();
@@ -127,6 +139,7 @@ const Links = () => {
             target: form.target.trim(),
             note: form.note.trim(),
           });
+      if (res?.unauthorized) return handleUnauthorized();
       if (!res?.success) {
         toast.error(res?.message || "Save failed");
         return;
@@ -158,6 +171,7 @@ const Links = () => {
     setBusySlug(row.slug);
     try {
       const res = await deleteLink(row.slug);
+      if (res?.unauthorized) return handleUnauthorized();
       if (!res?.success) {
         toast.error(res?.message || "Delete failed");
         return;

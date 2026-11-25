@@ -35,7 +35,7 @@ export function LoginForm({ className, ...props }) {
       const res = await loginAPI(empId, password);
 
       if (res?.success) {
-        login();
+        login(res.token, res.expires_at);
         navigate("/");
       } else if (res?.timedOut) {
         setError("Could not reach the API. Try again.");
