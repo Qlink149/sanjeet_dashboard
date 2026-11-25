@@ -73,6 +73,7 @@ const TriggerCampaign = () => {
   const [pipeline, setPipeline] = useState(presetPipeline);
   const [product, setProduct] = useState(presetProduct);
   const [source, setSource] = useState(presetSource);
+  const [segment, setSegment] = useState("");
   const [file, setFile] = useState(null);
 
   const [templates, setTemplates] = useState([]);
@@ -159,6 +160,8 @@ const TriggerCampaign = () => {
     (s) => s !== "(blank)"
   );
 
+  const segmentOptions = Object.keys(leadStats?.segments || {});
+
   useEffect(() => {
     const t = setTimeout(() => setLeadSearch(leadSearchInput.trim()), 350);
     return () => clearTimeout(t);
@@ -168,7 +171,7 @@ const TriggerCampaign = () => {
     setSelectionMode("all");
     setExceptions(new Set());
     setLeadPage(1);
-  }, [pipeline, product, source]);
+  }, [pipeline, product, source, segment]);
 
   useEffect(() => {
     if (!audienceSelected) return;
@@ -180,6 +183,7 @@ const TriggerCampaign = () => {
           category: pipeline,
           product: product || "",
           source: source || "",
+          segment: segment || "",
           search: leadSearch,
           page: leadPage,
           limit: LEAD_PAGE_SIZE,
@@ -196,7 +200,7 @@ const TriggerCampaign = () => {
     return () => {
       cancelled = true;
     };
-  }, [audienceSelected, pipeline, product, source, leadSearch, leadPage]);
+  }, [audienceSelected, pipeline, product, source, segment, leadSearch, leadPage]);
 
   const totalPages = Math.max(1, Math.ceil(leadListData.total / LEAD_PAGE_SIZE));
 
@@ -244,7 +248,8 @@ const TriggerCampaign = () => {
             pipeline,
             product,
             source,
-            selectionMode === "all" ? Array.from(exceptions) : []
+            selectionMode === "all" ? Array.from(exceptions) : [],
+            segment
           );
         }
       } else if (file) {
@@ -277,6 +282,7 @@ const TriggerCampaign = () => {
         setPipeline("");
         setProduct("");
         setSource("");
+        setSegment("");
         setSelectionMode("all");
         setExceptions(new Set());
         setLeadSearchInput("");
@@ -386,6 +392,23 @@ const TriggerCampaign = () => {
                   {sourceOptions.map((s) => (
                     <SelectItem key={s} value={s}>
                       {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                onValueChange={(v) => setSegment(v === "all" ? "" : v)}
+                value={segment || "all"}
+                disabled={disableAudience}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Tag / segment" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All tags</SelectItem>
+                  {segmentOptions.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s} ({leadStats?.segments?.[s] || 0})
                     </SelectItem>
                   ))}
                 </SelectContent>

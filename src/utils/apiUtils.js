@@ -144,12 +144,14 @@ export const triggerTemplateWithCategory = (
   category,
   product = "",
   source = "",
-  excludePhoneNumbers = []
+  excludePhoneNumbers = [],
+  segment = ""
 ) => {
   const formData = new FormData();
   formData.append("category", category);
   if (product) formData.append("sub_category", product);
   if (source) formData.append("source", source);
+  if (segment) formData.append("segment", segment);
   if (excludePhoneNumbers.length > 0) {
     formData.append("exclude_phone_numbers", excludePhoneNumbers.join(","));
   }
@@ -240,6 +242,7 @@ export const fetchFilteredLeads = ({
   pipeline,
   product,
   source,
+  segment,
   masterclassId,
   search = "",
   page = 1,
@@ -255,6 +258,7 @@ export const fetchFilteredLeads = ({
   if (pipeline) params.set("pipeline", pipeline);
   if (product) params.set("product", product);
   if (source) params.set("source", source);
+  if (segment) params.set("segment", segment);
   if (masterclassId) params.set("masterclass_id", masterclassId);
   if (search) params.set("search", search);
   if (noNumber) params.set("no_number", "true");
