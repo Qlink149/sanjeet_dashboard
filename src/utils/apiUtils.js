@@ -283,3 +283,15 @@ export const activateMasterclass = (masterclassId) =>
 
 export const deleteMasterclass = (masterclassId) =>
   api(`${BASE_URL}/masterclasses/${masterclassId}`, "DELETE");
+
+export const fetchLinks = (signal) =>
+  api(`${BASE_URL}/links`, "GET", null, signal);
+
+export const createLink = (payload) =>
+  api(`${BASE_URL}/links`, "POST", payload);
+
+export const updateLink = (slug, payload) =>
+  api(`${BASE_URL}/links/${encodeURIComponent(slug)}`, "PATCH", payload);
+
+export const deleteLink = (slug) =>
+  api(`${BASE_URL}/links/${encodeURIComponent(slug)}`, "DELETE");

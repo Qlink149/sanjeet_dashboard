@@ -10,6 +10,7 @@ import {
   PanelLeftOpen,
   BarChart,
   GraduationCap,
+  Link2,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/auth-context";
@@ -34,6 +35,7 @@ const Sidebar = () => {
         { name: "Templates", icon: FileText, path: "/templates" },
         { name: "People", icon: Users, path: "/leads" },
         { name: "Masterclasses", icon: GraduationCap, path: "/masterclasses" },
+        { name: "Links", icon: Link2, path: "/links" },
         { name: "Trigger Campaign", icon: Send, path: "/trigger-campaign" },
         { name: "Campaign Analytics", icon: BarChart, path: "/campaign-analytics" },
       ],
