@@ -227,6 +227,7 @@ export const createSchedule = ({
   scheduleType = "delay",
   sendDate = null,
   enabled = true,
+  segment = "",
 }) =>
   api(`${BASE_URL}/schedules`, "POST", {
     template_id: templateId,
@@ -238,6 +239,7 @@ export const createSchedule = ({
     schedule_type: scheduleType,
     send_date: sendDate,
     enabled,
+    segment: segment || null,
   });
 
 export const updateSchedule = (scheduleId, fields) =>

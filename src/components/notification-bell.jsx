@@ -89,6 +89,7 @@ const NotificationBell = () => {
               <span className="font-medium">{s.template_name || "Template"}</span>
               <span className="text-xs text-muted-foreground">
                 {rowLabel(s)}
+                {s.segment ? ` · Tag: ${s.segment}` : ""}
                 {!s.enabled ? " · stopped" : ""}
               </span>
             </DropdownMenuItem>

@@ -48,6 +48,7 @@ import {
   createSchedule,
   updateSchedule,
   deleteSchedule,
+  fetchLeadStats,
 } from "@/utils/apiUtils";
 
 const todayIst = () =>
@@ -146,6 +147,8 @@ const AllTemplates = () => {
   const [newDate, setNewDate] = useState(todayIst());
   const [newTime, setNewTime] = useState("10:00");
   const [newCategory, setNewCategory] = useState("all_leads");
+  const [newSegment, setNewSegment] = useState("");
+  const [segmentCounts, setSegmentCounts] = useState({});
   const [savingSchedule, setSavingSchedule] = useState(false);
 
   // -----------------------------
@@ -202,6 +205,10 @@ const AllTemplates = () => {
       setNewDate(todayIst());
       setNewTime("10:00");
       setNewCategory("all_leads");
+      setNewSegment("");
+      fetchLeadStats().then((res) => {
+        if (res?.success) setSegmentCounts(res.data?.segments || {});
+      });
     } else {
       setSchedules([]);
     }
@@ -223,8 +230,18 @@ const AllTemplates = () => {
         category: newCategory,
         scheduleType: "delay",
         sendDate: newDate,
+        segment: newSegment,
       });
-      if (res?.success) {
+      if (res?.success && newSegment && res.data?.segment !== newSegment) {
+        // A server that ignores the tag would send to the whole audience.
+        const removed = await deleteSchedule(res.data?.schedule_id);
+        toast.error(
+          removed?.success
+            ? "The server did not save the tag, so the schedule was removed."
+            : "The server did not save the tag. Delete this schedule now."
+        );
+        loadSchedules(selected.id);
+      } else if (res?.success) {
         toast.success("Scheduled", {
           description: `Will send on ${newDate} at ${newTime} IST.`,
         });
@@ -750,6 +767,11 @@ const AllTemplates = () => {
                                 ? `${s.send_date} at ${s.send_time} IST`
                                 : `${s.send_time} IST`}
                             </p>
+                            {s.segment && (
+                              <p className="text-muted-foreground">
+                                Tag: {s.segment}
+                              </p>
+                            )}
                             <p className="text-muted-foreground">
                               {s.enabled && !s.last_run_date
                                 ? "Waiting"
@@ -808,6 +830,25 @@ const AllTemplates = () => {
                           {SCHEDULE_CATEGORIES.map((c) => (
                             <SelectItem key={c.value} value={c.value}>
                               {c.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Tag / segment</Label>
+                      <Select
+                        value={newSegment || "all"}
+                        onValueChange={(v) => setNewSegment(v === "all" ? "" : v)}
+                      >
+                        <SelectTrigger className="w-[170px] h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All tags</SelectItem>
+                          {Object.keys(segmentCounts).map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {s} ({segmentCounts[s] || 0})
                             </SelectItem>
                           ))}
                         </SelectContent>
