@@ -90,6 +90,7 @@ const NotificationBell = () => {
               <span className="text-xs text-muted-foreground">
                 {rowLabel(s)}
                 {s.segment ? ` · Tag: ${s.segment}` : ""}
+                {s.last_error ? " · not sent" : ""}
                 {!s.enabled ? " · stopped" : ""}
               </span>
             </DropdownMenuItem>

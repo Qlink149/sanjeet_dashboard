@@ -40,6 +40,8 @@ import {
   fetchLeadStats,
   fetchFilteredLeads,
 } from "@/utils/apiUtils";
+import TemplateParams from "@/components/template-params";
+import { useTemplateParams } from "@/lib/templateParams";
 
 const LEAD_PAGE_SIZE = 25;
 
@@ -154,6 +156,8 @@ const TriggerCampaign = () => {
     () => templates.find((t) => t.id === campaign),
     [templates, campaign]
   );
+  const templateParams = useTemplateParams(selectedTemplate);
+  const canSend = !!selectedTemplate && templateParams.complete;
 
   const productOptions = Object.keys(leadStats?.products || {});
   const sourceOptions = Object.keys(leadStats?.sources || {}).filter(
@@ -222,7 +226,7 @@ const TriggerCampaign = () => {
   };
 
   const handleSend = async () => {
-    if (!campaign || sending) return;
+    if (!canSend || sending) return;
     setSending(true);
     setResult(null);
     try {
@@ -241,7 +245,11 @@ const TriggerCampaign = () => {
             setSending(false);
             return;
           }
-          res = await triggerTemplateWithPhones(campaign, phones);
+          res = await triggerTemplateWithPhones(
+            campaign,
+            phones,
+            templateParams.payload
+          );
         } else {
           res = await triggerTemplateWithCategory(
             campaign,
@@ -249,11 +257,16 @@ const TriggerCampaign = () => {
             product,
             source,
             selectionMode === "all" ? Array.from(exceptions) : [],
-            segment
+            segment,
+            templateParams.payload
           );
         }
       } else if (file) {
-        res = await triggerTemplateWithExcel(campaign, file);
+        res = await triggerTemplateWithExcel(
+          campaign,
+          file,
+          templateParams.payload
+        );
       } else {
         const phones = rows
           .filter((r) => r.number.trim())
@@ -269,7 +282,11 @@ const TriggerCampaign = () => {
           setSending(false);
           return;
         }
-        res = await triggerTemplateWithPhones(campaign, phones);
+        res = await triggerTemplateWithPhones(
+          campaign,
+          phones,
+          templateParams.payload
+        );
       }
       setResult(
         res?.success
@@ -283,6 +300,7 @@ const TriggerCampaign = () => {
         setProduct("");
         setSource("");
         setSegment("");
+        templateParams.reset();
         setSelectionMode("all");
         setExceptions(new Set());
         setLeadSearchInput("");
@@ -433,7 +451,7 @@ const TriggerCampaign = () => {
             <FileDown size={16} />
             Download Sample Excel
           </Button>
-          <Button disabled={!campaign || sending} onClick={handleSend}>
+          <Button disabled={!canSend || sending} onClick={handleSend}>
             {sending ? (
               <>
                 <Loader2 className="animate-spin mr-2" size={16} />
@@ -480,6 +498,8 @@ const TriggerCampaign = () => {
           delivery to Indian numbers. Use a UTILITY template for testing if needed.
         </div>
       )}
+
+      <TemplateParams template={selectedTemplate} params={templateParams} />
 
       {audienceSelected && (
         <div className="rounded-xl border">

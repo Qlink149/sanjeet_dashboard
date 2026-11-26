@@ -140,8 +140,20 @@ const triggerTemplateForm = async (templateId, formData) => {
   }
 };
 
-export const triggerTemplateWithPhones = (templateId, phones) => {
+// One value per {{n}} of the template, in order (see lib/templateParams).
+const appendTemplateParams = (formData, templateParams) => {
+  if (templateParams.length > 0) {
+    formData.append("template_params", JSON.stringify(templateParams));
+  }
+};
+
+export const triggerTemplateWithPhones = (
+  templateId,
+  phones,
+  templateParams = []
+) => {
   const formData = new FormData();
+  appendTemplateParams(formData, templateParams);
   formData.append(
     "phone_numbers",
     phones.map((p) => p.phone_number).join(",")
@@ -153,8 +165,13 @@ export const triggerTemplateWithPhones = (templateId, phones) => {
   return triggerTemplateForm(templateId, formData);
 };
 
-export const triggerTemplateWithExcel = (templateId, file) => {
+export const triggerTemplateWithExcel = (
+  templateId,
+  file,
+  templateParams = []
+) => {
   const formData = new FormData();
+  appendTemplateParams(formData, templateParams);
   formData.append("file", file);
   return triggerTemplateForm(templateId, formData);
 };
@@ -165,9 +182,11 @@ export const triggerTemplateWithCategory = (
   product = "",
   source = "",
   excludePhoneNumbers = [],
-  segment = ""
+  segment = "",
+  templateParams = []
 ) => {
   const formData = new FormData();
+  appendTemplateParams(formData, templateParams);
   formData.append("category", category);
   if (product) formData.append("sub_category", product);
   if (source) formData.append("source", source);
@@ -228,6 +247,7 @@ export const createSchedule = ({
   sendDate = null,
   enabled = true,
   segment = "",
+  templateParams = [],
 }) =>
   api(`${BASE_URL}/schedules`, "POST", {
     template_id: templateId,
@@ -240,6 +260,7 @@ export const createSchedule = ({
     send_date: sendDate,
     enabled,
     segment: segment || null,
+    template_params: templateParams,
   });
 
 export const updateSchedule = (scheduleId, fields) =>

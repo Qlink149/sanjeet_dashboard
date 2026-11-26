@@ -50,6 +50,8 @@ import {
   deleteSchedule,
   fetchLeadStats,
 } from "@/utils/apiUtils";
+import TemplateParams from "@/components/template-params";
+import { describeParams, useTemplateParams } from "@/lib/templateParams";
 
 const todayIst = () =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(
@@ -150,6 +152,7 @@ const AllTemplates = () => {
   const [newSegment, setNewSegment] = useState("");
   const [segmentCounts, setSegmentCounts] = useState({});
   const [savingSchedule, setSavingSchedule] = useState(false);
+  const templateParams = useTemplateParams(selected);
 
   // -----------------------------
   // FETCH ALL TEMPLATES
@@ -231,14 +234,18 @@ const AllTemplates = () => {
         scheduleType: "delay",
         sendDate: newDate,
         segment: newSegment,
+        templateParams: templateParams.payload,
       });
-      if (res?.success && newSegment && res.data?.segment !== newSegment) {
-        // A server that ignores the tag would send to the whole audience.
+      const ignored =
+        (newSegment && res?.data?.segment !== newSegment) ||
+        (templateParams.payload.length > 0 && !res?.data?.template_params);
+      if (res?.success && ignored) {
+        // An outdated server would send to the wrong audience or without values.
         const removed = await deleteSchedule(res.data?.schedule_id);
         toast.error(
           removed?.success
-            ? "The server did not save the tag, so the schedule was removed."
-            : "The server did not save the tag. Delete this schedule now."
+            ? "The server did not save every setting, so the schedule was removed."
+            : "The server did not save every setting. Delete this schedule now."
         );
         loadSchedules(selected.id);
       } else if (res?.success) {
@@ -772,13 +779,24 @@ const AllTemplates = () => {
                                 Tag: {s.segment}
                               </p>
                             )}
-                            <p className="text-muted-foreground">
-                              {s.enabled && !s.last_run_date
-                                ? "Waiting"
-                                : s.last_run_date
-                                  ? `Sent ${s.last_run_date}`
-                                  : "Stopped"}
-                            </p>
+                            {s.template_params?.length > 0 && (
+                              <p className="text-muted-foreground">
+                                Values: {describeParams(s.template_params)}
+                              </p>
+                            )}
+                            {s.last_error ? (
+                              <p className="text-destructive">
+                                {s.last_run_date}: {s.last_error}
+                              </p>
+                            ) : (
+                              <p className="text-muted-foreground">
+                                {s.enabled && !s.last_run_date
+                                  ? "Waiting"
+                                  : s.last_run_date
+                                    ? `Sent ${s.last_run_date}`
+                                    : "Stopped"}
+                              </p>
+                            )}
                           </div>
                           {s.enabled && !s.last_run_date && (
                             <Button
@@ -800,6 +818,7 @@ const AllTemplates = () => {
                       ))}
                     </div>
                   )}
+                  <TemplateParams template={selected} params={templateParams} />
                   <div className="flex items-end gap-2 flex-wrap">
                     <div className="space-y-1">
                       <Label className="text-xs">Date</Label>
@@ -857,7 +876,7 @@ const AllTemplates = () => {
                     <Button
                       size="sm"
                       className="h-8"
-                      disabled={savingSchedule}
+                      disabled={savingSchedule || !templateParams.complete}
                       onClick={handleAddSchedule}
                     >
                       {savingSchedule ? (
